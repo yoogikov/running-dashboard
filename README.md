@@ -12,6 +12,8 @@ map/heat rendering, importer/analyzer UI, etc.) lives untouched in
 `running/` for reference during the rebuild; it is gitignored and not part
 of this repo's history.
 
+See [`TODO.md`](TODO.md) for the known-issues/ideas backlog.
+
 ## Running it
 
 ```sh
