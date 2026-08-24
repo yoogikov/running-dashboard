@@ -3,9 +3,9 @@ below.
 
 Everything the app can do lives in a module under modules/ — see module.py for
 the contract and host.py for how they find each other. This file's whole job is
-to make the window and say which modules are in the build. With nothing
-registered yet, this is the plain window and nothing else — that is the
-staging model, and it is executable.
+to make the window and say which modules are in the build. With only the root
+module registered, this is a full-window grey surface and nothing else — that
+is the staging model, and it is executable.
 """
 import sys
 from pathlib import Path
@@ -16,9 +16,10 @@ sys.path.insert(0, str(APP_DIR))
 import tkinter as tk  # noqa: E402
 
 import host  # noqa: E402
+from modules import root as root_module  # noqa: E402
 
-APP_BG = "#17140f"  # warm charcoal — the only thing on screen until a module
-                    # puts something over it
+APP_BG = "#17140f"  # warm charcoal — visible only for the instant before the
+                    # root module's grey frame covers it
 
 
 def main():
@@ -30,6 +31,7 @@ def main():
     root.configure(bg=APP_BG)
 
     h = host.Host(root)
+    h.register(root_module.Root)
     h.start()
 
     def on_close():
