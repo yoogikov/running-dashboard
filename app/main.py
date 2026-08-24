@@ -15,6 +15,7 @@ sys.path.insert(0, str(APP_DIR))
 
 import tkinter as tk  # noqa: E402
 
+import db  # noqa: E402
 import host  # noqa: E402
 from modules import heatmap as heatmap_module  # noqa: E402
 from modules import importer as importer_module  # noqa: E402
@@ -32,6 +33,8 @@ def main():
     root.title("Running Dashboard")
     root.geometry("1280x820")
     root.configure(bg=APP_BG)
+
+    db.init_db()  # creates data/running.db and its tables if they don't exist yet
 
     h = host.Host(root)
     h.register(root_module.Root)

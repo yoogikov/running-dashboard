@@ -103,8 +103,13 @@ added later without touching the publisher).
 ### `app/main.py`
 The entry point. Creates the Tk root (`className="running"` so i3's
 `assign [class="running"]` rule and the launcher's `xdotool` duplicate
-check both match it), creates a `Host`, calls `h.start()`, and wires
-`WM_DELETE_WINDOW` to `h.stop()` then `root.destroy()`.
+check both match it), calls `db.init_db()` (creates `data/running.db`
+and its tables if they don't exist — without this, every import fails:
+`dedupe`/`db` hit `sqlite3.OperationalError: no such table: runs`, which
+the importer's broad exception handling quietly routes to `failed/`,
+so the bad file is more useful to look at than the error), creates a
+`Host`, calls `h.start()`, and wires `WM_DELETE_WINDOW` to `h.stop()`
+then `root.destroy()`.
 
 This is also where modules get registered. Adding a feature means
 writing a `Module` subclass and adding one `h.register(...)` call here.
