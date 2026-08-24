@@ -17,6 +17,7 @@ import tkinter as tk  # noqa: E402
 
 import host  # noqa: E402
 from modules import root as root_module  # noqa: E402
+from modules import topbar as topbar_module  # noqa: E402
 
 APP_BG = "#17140f"  # warm charcoal — visible only for the instant before the
                     # root module's grey frame covers it
@@ -32,6 +33,7 @@ def main():
 
     h = host.Host(root)
     h.register(root_module.Root)
+    h.register(topbar_module.TopBar)
     h.start()
 
     def on_close():
