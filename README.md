@@ -198,6 +198,28 @@ whole rather than rebuilt, unlike the framework files above):
   auto-import; only `modules/importer.py`'s callback hops back onto the
   main thread, since that's the only part that touches Tk state.
 
+### ⚠️ Bulk imports and `app/rebuild_graph.py`
+
+Route merging is order-dependent — whichever run reaches a spot first
+seeds that node's position (see `route_graph.py`'s own docstrings) — so
+the graph only comes out right if runs are folded in roughly the order
+they actually happened. `folder_watch.py`'s incremental `add_run()`
+handles a normal one-at-a-time live import fine either way, but it scans
+its directory **alphabetically**, not chronologically. Bulk-dropping many
+historical GPX files into `data/imports/` at once therefore merges them
+in the wrong order, and the resulting graph can come out visibly wrong —
+spurious tangled junctions, missing spurs that should connect to the
+rest of the road.
+
+`app/rebuild_graph.py` fixes this: it doesn't touch `running.db`, just
+rebuilds `data/route_graph.json` from scratch by replaying every stored
+run **chronologically by date** (`route_graph.rebuild()`, which already
+existed for exactly this). Run it after any bulk import:
+
+```sh
+python3 app/rebuild_graph.py
+```
+
 ## The map / heatmap rendering
 
 Also brought in as-is, and now wired into `modules/background.py` (see
