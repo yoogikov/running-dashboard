@@ -17,6 +17,7 @@ import tkinter as tk  # noqa: E402
 
 import host  # noqa: E402
 from modules import heatmap as heatmap_module  # noqa: E402
+from modules import importer as importer_module  # noqa: E402
 from modules import root as root_module  # noqa: E402
 from modules import topbar as topbar_module  # noqa: E402
 
@@ -36,6 +37,7 @@ def main():
     h.register(root_module.Root)
     h.register(topbar_module.TopBar)
     h.register(heatmap_module.HeatmapTab)
+    h.register(importer_module.ImporterModule)
     h.start()
 
     def on_close():
