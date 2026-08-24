@@ -139,15 +139,26 @@ sees pointer movement anywhere in the window, not just over the bar
 itself.
 
 ### `app/modules/heatmap.py` — `HeatmapTab`
-`surface=NONE`, `requires=("topbar", "root")`. Packs a "Heatmap" label
-into the top bar as a tab (`surface=TAB` isn't implemented yet, so this
-is a plain click-bound label rather than a real tab widget). Also owns a
-full-window view frame over root's, hidden until the tab is clicked; on
-click it's placed to fill the window and the top bar is lifted back
-above it, so the auto-hiding bar stays on top of whatever view is open.
-The view itself is currently just a placeholder background (dark navy,
-`#12232e`, deliberately distinct from root's grey) — no heatmap content
-yet.
+`surface=NONE`, `requires=("topbar", "background")`. Packs a "Heatmap"
+label into the top bar as a tab (`surface=TAB` isn't implemented yet, so
+this is a plain click-bound label rather than a real tab widget). On
+click, calls the background module's `show()` and lifts the top bar
+back above it, so the auto-hiding bar stays on top of the map.
+
+### `app/modules/background.py` — `BackgroundModule`
+`surface=NONE`, `requires=("root",)`. Owns the map: a `tkintermapview`
+widget (CartoDB Dark Matter basemap, no labels, no API key) with tile
+caching (`tile_cache.py`) and a heat-colored route overlay
+(`heat_overlay.py`) drawn on top of it. `show()`/`hide()` place/unplace
+the widget (idempotent); the first `show()` also draws the route graph
+and zooms to the most recent run. Subscribes to `run.imported` and
+redraws automatically when a new run lands.
+
+Adapted from the original for this repo's root design: it builds its
+map widget onto `root_mod.frame` instead of the bare Tk root, so it
+stacks correctly under the (also `root.frame`-mounted) top bar — in the
+original, `root.py` itself was the bare-root owner and everything else,
+map included, built straight onto `host.root`.
 
 ### `app/modules/importer.py` — `ImporterModule`
 `surface=NONE`. Watches `data/imports/` for dropped GPX/TCX files and
@@ -187,6 +198,27 @@ whole rather than rebuilt, unlike the framework files above):
   auto-import; only `modules/importer.py`'s callback hops back onto the
   main thread, since that's the only part that touches Tk state.
 
+## The map / heatmap rendering
+
+Also brought in as-is, and now wired into `modules/background.py` (see
+above):
+
+- **`app/heat_overlay.py`** — `HeatOverlay`: rasterizes the merged route
+  graph into one Pillow-composited, genuinely alpha-blended image and
+  blits it over the map, rather than drawing thousands of individual Tk
+  canvas lines (Canvas has no real alpha compositing). Brightness per
+  road scales with how many runs traced it. Patches the map widget's
+  pan/zoom internals so the overlay stays in sync as you move around —
+  cheaply shifted pixel-for-pixel on every pan, fully re-rendered on
+  zoom or once panning settles.
+- **`app/tile_cache.py`** — write-through SQLite cache for the map's own
+  basemap tiles (`data/tile_cache.db`, 300MB cap, oldest evicted first).
+  `tkintermapview` only *reads* a pre-downloaded tile cache by default;
+  this patches it to also *write* every tile fetched during normal use.
+- **`app/ui/cards.py`** — the color palette (warm charcoal / desaturated
+  terracotta) and `make_card`/`card_title` helpers for floating panels
+  over the map. Not yet used by anything wired in.
+
 ## Data directory
 
 `data/` holds everything the app produces at runtime:
@@ -195,7 +227,7 @@ whole rather than rebuilt, unlike the framework files above):
 data/
   running.db            # sqlite: runs + track points
   route_graph.json       # merged route graph cache
-  tile_cache.db           # map tile cache (not yet wired in)
+  tile_cache.db           # map tile cache
   launch.log              # i3 launcher output
   imports/
     imported/             # successfully-imported GPX/TCX files land here
