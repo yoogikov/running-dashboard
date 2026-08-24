@@ -106,10 +106,32 @@ The entry point. Creates the Tk root (`className="running"` so i3's
 check both match it), creates a `Host`, calls `h.start()`, and wires
 `WM_DELETE_WINDOW` to `h.stop()` then `root.destroy()`.
 
-This is also where modules get registered — currently none are, so
-`Host` resolves an empty module list and you get the bare window. Adding
-a feature means writing a `Module` subclass and adding one
-`h.register(...)` (or equivalent) call here.
+This is also where modules get registered. Adding a feature means
+writing a `Module` subclass and adding one `h.register(...)` call here.
+
+## Modules registered so far
+
+### `app/modules/root.py` — `Root`
+`surface=ROOT`. Owns the whole window and fills it with a single grey
+(`#2b2b2b`) frame. No content of its own — it exists so every other
+module has a stable, already-built parent to sit on top of instead of
+the bare Tk root.
+
+### `app/modules/topbar.py` — `TopBar`
+`surface=NONE`, `requires=("root",)`. A fixed-height (40px), darker
+(`#1f1f1f`) strip across the top of the window, where tab/nav buttons
+will eventually live — empty for now. Builds itself directly onto the
+root module's frame rather than waiting on `surface=TAB`, which isn't
+implemented yet.
+
+It's auto-hiding: positioned with `place()` at `y=-HEIGHT` (just above
+the visible window) until the mouse touches the top edge
+(`event.y_root - root.winfo_rooty() <= EDGE_TRIGGER`), at which point it
+animates down to `y=0` in fixed steps via repeated `root.after(...)`
+calls; it slides back up once the mouse moves more than `HIDE_MARGIN`
+below the top. Motion is caught with `bind_all("<Motion>", ...)` so it
+sees pointer movement anywhere in the window, not just over the bar
+itself.
 
 ## Notes for editors
 
