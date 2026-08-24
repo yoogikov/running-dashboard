@@ -12,5 +12,7 @@ data/*.db-shm
 data/*.db-wal
 data/*.json
 data/*.log
+data/imports/*.gpx
+data/imports/*.tcx
 data/imports/*/*.gpx
 data/imports/*/*.tcx
