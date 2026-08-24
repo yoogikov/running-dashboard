@@ -1,5 +1,16 @@
 running
-data/
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# data/ (see app/paths.py): the folder structure itself is tracked via
+# .gitkeep so a fresh clone has the right layout, but none of the actual
+# run data — GPX imports, the sqlite db, tile cache, logs, the route
+# graph cache — ever gets committed.
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.json
+data/*.log
+data/imports/*/*.gpx
+data/imports/*/*.tcx
