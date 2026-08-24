@@ -2,10 +2,10 @@
 
 A local Tkinter desktop app for running data — no cloud, no accounts.
 
-This repo is a from-scratch rebuild. `app/` currently contains only the
-module/host framework with **zero feature modules registered** — so running
-it opens a plain window and nothing else. That's deliberate: it's the
-staging point every feature gets added onto, one module at a time.
+This repo is a from-scratch rebuild. `app/` started as just the module/host
+framework with zero feature modules registered — a plain window and nothing
+else. That's still the model: features get added one module at a time,
+each registered explicitly in `main.py`.
 
 The original, fuller prototype (ingestion pipeline, route-graph merging,
 map/heat rendering, importer/analyzer UI, etc.) lives untouched in
@@ -133,12 +133,81 @@ below the top. Motion is caught with `bind_all("<Motion>", ...)` so it
 sees pointer movement anywhere in the window, not just over the bar
 itself.
 
+### `app/modules/heatmap.py` — `HeatmapTab`
+`surface=NONE`, `requires=("topbar", "root")`. Packs a "Heatmap" label
+into the top bar as a tab (`surface=TAB` isn't implemented yet, so this
+is a plain click-bound label rather than a real tab widget). Also owns a
+full-window view frame over root's, hidden until the tab is clicked; on
+click it's placed to fill the window and the top bar is lifted back
+above it, so the auto-hiding bar stays on top of whatever view is open.
+The view itself is currently just a placeholder background (dark navy,
+`#12232e`, deliberately distinct from root's grey) — no heatmap content
+yet.
+
+### `app/modules/importer.py` — `ImporterModule`
+`surface=NONE`. Watches `data/imports/` for dropped GPX/TCX files and
+imports them automatically. Thin by design: `on_start`/`on_stop` just
+start and stop a `FolderWatcher` (see below); the only other thing it
+does is turn that watcher's single `on_import` callback into a
+`run.imported` bus event, so any future module can react without this
+file or `folder_watch.py` changing again.
+
+Not a UI module — it has no visible surface, just runs in the background.
+
+## The data-import pipeline
+
+Brought in as-is from `running/` (already-working, tested code — ported
+whole rather than rebuilt, unlike the framework files above):
+
+- **`app/gpx_parser.py`** — stdlib-only GPX/TCX parsing.
+- **`app/gps_smooth.py`** — drops GPS outliers, then a moving-average
+  smooth over lat/lon.
+- **`app/track_processing.py`** — runs the above, then re-summarizes
+  distance/pace/elevation/date from the smoothed points.
+- **`app/dedupe.py`** — decides whether a parsed run is already stored
+  (start-time match within tolerance, or date+distance+duration
+  fallback).
+- **`app/db.py`** — SQLite storage (`data/running.db`): `runs` and
+  `track_points` tables, plus the accessors the rest of the pipeline
+  needs.
+- **`app/route_graph.py`** + **`app/map_heat.py`** — merges every run
+  into one shared, undirected route graph (`data/route_graph.json`) for
+  future heatmap rendering. This is the most involved piece by far; see
+  its own docstrings for the matching/merging algorithm.
+- **`app/folder_watch.py`** — the actual watcher. Polls `data/imports/`
+  every 2 seconds; for each new file, on its own worker thread: parse →
+  reject to `failed/` if empty → smooth → dedupe-check → insert into the
+  db → fold into the route graph → move to `imported/`/`duplicates/`.
+  Manual fields (RPE, pulse, sleep, soreness) are left blank on
+  auto-import; only `modules/importer.py`'s callback hops back onto the
+  main thread, since that's the only part that touches Tk state.
+
+## Data directory
+
+`data/` holds everything the app produces at runtime:
+
+```
+data/
+  running.db            # sqlite: runs + track points
+  route_graph.json       # merged route graph cache
+  tile_cache.db           # map tile cache (not yet wired in)
+  launch.log              # i3 launcher output
+  imports/
+    imported/             # successfully-imported GPX/TCX files land here
+    failed/                # files that failed to parse
+    duplicates/            # files matching a run already stored
+```
+
+The folder *structure* is tracked in git via `.gitkeep` files (so a
+fresh clone has the right layout), but none of the actual contents are —
+`.gitignore` excludes `data/*.db`, `data/*.json`, `data/*.log`, and any
+`.gpx`/`.tcx` under `data/imports/*/` by pattern, rather than
+blanket-ignoring `data/` itself.
+
 ## Notes for editors
 
 - `app/` has no `__init__.py` and relies on
   `sys.path.insert(0, APP_DIR)` in `main.py` for flat top-level imports
   (`import host`, `import module as mod`, etc.). Editors/type-checkers
-  that don't know about this will flag `host`/`module`/`paths` as
-  unresolved imports — expected and harmless.
-- `data/` is gitignored; it holds runtime output (e.g. `launch.log` from
-  the i3 launcher) and is created on demand, not tracked.
+  that don't know about this will flag `host`/`module`/`paths` and the
+  pipeline modules as unresolved imports — expected and harmless.
