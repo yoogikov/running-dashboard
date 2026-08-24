@@ -187,30 +187,6 @@ whole rather than rebuilt, unlike the framework files above):
   auto-import; only `modules/importer.py`'s callback hops back onto the
   main thread, since that's the only part that touches Tk state.
 
-## Other files brought in from `running/`, not wired in yet
-
-The rest of the original prototype's source, ported as-is so it's
-available to draw on without going back to `running/`, but not imported
-by anything in this repo yet:
-
-- **`app/map_heat.py`** heatmap rendering support: `app/heat_overlay.py`
-  (Pillow-based compositing overlay), `app/tile_cache.py` (LRU
-  write-through tile cache, 300MB cap).
-- **`app/road_snap.py`**, **`app/density_cache.py`**,
-  **`app/analytics_cache.py`**, **`app/metrics.py`** — retired/exploratory
-  pieces from the original build that were imported by its `main.py` but
-  never actually registered as modules, so they never ran there either.
-- **`app/modules/background.py`**, **`app/modules/run_analyzer.py`** —
-  the original background and run-list/detail modules.
-- **`app/ui/cards.py`** (color palette + panel-chrome helpers),
-  **`app/ui/charts.py`**, **`app/ui/dialogs.py`**,
-  **`app/ui/scrollable.py`** (the Canvas+Frame+Scrollbar recipe, wheel
-  events scoped to hover), **`app/ui/topbar.py`** — the original's UI
-  widgets, separate from this repo's own `app/modules/topbar.py`.
-
-Each gets wired in deliberately, one module at a time, the same way
-`root`/`topbar`/`heatmap`/`importer` were.
-
 ## Data directory
 
 `data/` holds everything the app produces at runtime:
